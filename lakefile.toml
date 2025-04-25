@@ -1,6 +1,5 @@
 name = "lean-testground"
 version = "0.1.0"
-defaultTargets = ["lean-testground"]
 
 [[lean_lib]]
 name = "LeanTestground"
