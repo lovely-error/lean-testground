@@ -1,0 +1,16 @@
+name = "lean-testground"
+version = "0.1.0"
+defaultTargets = ["lean-testground"]
+
+[[lean_lib]]
+name = "LeanTestground"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.18.0"
+
+[[require]]
+name = "batteries"
+scope = "leanprover-community"
+rev = "v4.18.0"
