@@ -290,37 +290,19 @@ theorem cast_injective {α β} (h : α = β) {a b} : cast h a = cast h b → a =
 
 -- #print axioms thm_2
 
-inductive Proper (P:Prop) : Type | mk (p:P)
 
-def wmap_prop: Sort _ -> Sort _ -> Sort _ | A, B => @Subtype (And (A -> B) (B -> A)) fun ⟨ f , h ⟩ => ∀ i, h (f i) = i
-
-set_option pp.proofs true in
-def p1_prop : (w:wmap_prop A B) -> ∀ a:A , @Subtype B fun b => w.val.right b = a := by
-  intro w
-  let ⟨ ⟨ f , h ⟩ , p ⟩ := w
-  dsimp at p
-  dsimp
-  intro a
-  refine ⟨ f a , ?_ ⟩
-  dsimp
-
-def mkwmap_prop (f: A -> B)(h:B->A)(p: ∀ i, h (f i) = i) : wmap_prop A B := ⟨ ⟨ f , h ⟩  , p ⟩
-
-@[simp]
-def and_right_to_val : (⟨ a , b ⟩:And _ _).right = b := by
-  rfl
 
 def proj_inj {f h:A->Prop}{p1:f a}{p2:h b}: a = b -> Subtype.val (Subtype.mk a p1) = Subtype.val (Subtype.mk b p2) := by
   intro p
   cases p
   rfl
 
-def proj_inj_2 {f h:A->Prop}{p1:f a}{p2:h b}: a = b -> Subtype.val (Subtype.mk a p1) = Subtype.val (Subtype.mk b p2) := by
-  intro p
-  cases p
+def only_refl_1 {a b:A}: ∀ (q:a=b), q = (by subst q; exact .refl _) := by
+  intro q
+  cases q
   rfl
 
-def only_refl {a b:A}: ∀ (q:a=b), q = (by subst q; exact .refl _) := by
+def only_refl_2 {a b:A}: ∀ (q:a=b), q = (by rewrite [q]; exact .refl _) := by
   intro q
   cases q
   rfl
@@ -329,32 +311,31 @@ def cast_reorder {f:A->B}: cast rfl (f a) = f (cast rfl a) := by
   exact rfl
 
 set_option pp.proofs true in
-def cast_proj_1_eq_proj_cast {f h:A->Prop}{b:f a}{eq:{ i:A // f i } = { i:A // h i }}: (cast eq ⟨ a , b ⟩).val = cast rfl ((⟨ a , b ⟩:Subtype _).val) := by
-  -- rw [cast_eq]
-  -- apply proj_inj
-  -- repeat rw [@eqRec_eq_cast]
-  -- rw [eq_rec_constant eq rfl]
-  -- rw [only_refl eq]
-  -- rw [eq_mpr_eq_cast (congrFun (congrArg Eq eq) { i // h i })]
+def cast_proj_1_eq_proj_cast {f h:A->Prop}{b:f a}{eq:{ i:A // f i } = { i:A // h i }}{eq2:f=h}: (cast eq ⟨ a , b ⟩).val = cast rfl ((⟨ a , b ⟩:Subtype _).val) := by
   rw [cast_reorder]
-  rw [only_refl eq]
-  refine (Subtype.heq_iff_coe_eq ?_).mp ?_
+  rw [only_refl_1 eq]
+  congr 2
   {
-    admit
+    symm
+    exact eq2
   }
   {
-    simp only [cast_eq, cast_heq]
+    exact Eq.symm eq
   }
+  {
+    exact eqRec_heq eq (Eq.refl _)
+  }
+
 
 set_option pp.proofs true in
-def reduce_cast_subtype_proj_1_ {A : Type} {v1 : A} {p1 p2 : A → Prop} {k1 : p1 v1} (eq : {i // p1 i} = {i // p2 i}) :
+def reduce_cast_subtype_proj_1_ {A : Type} {v1 : A} {p1 p2 : A → Prop} {k1 : p1 v1} (eq : {i // p1 i} = {i // p2 i})(eq2:p1=p2) :
   (cast eq ⟨v1, k1⟩).val = v1
 := by
-  rw [cast_proj_1_eq_proj_cast]
+  rw [cast_proj_1_eq_proj_cast (eq2:=eq2)]
   rw [cast_eq]
 
-axiom reduce_cast_subtype_proj_1 {A:Type}{v1:A}{p1 p2:A->Prop}{k1: p1 v1}(eq:{ i // p1 i } = { i // p2 i }):
-  (@cast { i // p1 i } { i // p2 i } (eq) ⟨v1, k1⟩).val = v1
+-- axiom reduce_cast_subtype_proj_1 {A:Type}{v1:A}{p1 p2:A->Prop}{k1: p1 v1}(eq:{ i // p1 i } = { i // p2 i }):
+--   (@cast { i // p1 i } { i // p2 i } (eq) ⟨v1, k1⟩).val = v1
 
 set_option pp.proofs true in
 def heq_to (eq1:A=B)(k1:@HEq A a B b):@HEq A a A (by subst eq1; exact b) := by
@@ -403,18 +384,20 @@ def heq_subtype_to_eq_val
   {A:Type}{n1 n2:A}
   {p1 p2:A->Prop}{k1: p1 n1}{k2: p2 n2}
   (eq: @HEq { i // p1 i } ⟨n1, k1⟩ { i // p2 i } ⟨n2, k2⟩)
+  (eq2: p1 = p2)
 : n1 = n2
 := by
   let t_eq := type_eq_of_heq eq
   rw [<- (heq_heq t_eq)] at eq
   simp only [heq_eq_eq] at eq
-  let eq2 := subtype_val_eq eq
-  rw [unstuck_rec] at eq2
-  simp at eq2
-  rw [@reduce_cast_subtype_proj_1] at eq2
-  exact eq2
+  let eq3 := subtype_val_eq eq
+  rw [unstuck_rec] at eq3
+  simp only [eq_mpr_eq_cast] at eq3
+  rw [eq3]
+  apply reduce_cast_subtype_proj_1_
+  exact Eq.symm eq2
 
-#print axioms heq_subtype_to_eq_val
+-- #print axioms heq_subtype_to_eq_val
 
 set_option pp.proofs true in
 -- set_option diagnostics true in
@@ -432,7 +415,10 @@ example {n:Real}{nnlz:n >= 0}: (n ^ ((1:Real) / 2) ) ^ (2:Real) = n := by
   unfold real_to_rat mkwmap at p
   simp only [Sigma.mk.inj_iff] at p
   let ⟨ eq1 , eq2 ⟩ := p
-  let eq2 := heq_subtype_to_eq_val eq2
+  let eq2 := by
+    refine heq_subtype_to_eq_val eq2 ?_
+    funext i
+    rw [eq1]
   rw [eq2] at eq1
   rw [<-eq1]
 
@@ -446,7 +432,10 @@ example {n:Real}{nnlz:n >= 0}: (n ^ ((1:Real) / 2) ) ^ (2:Real) = n := by
   unfold real_to_rat mkwmap at p
   simp only [Sigma.mk.inj_iff, cast_heq_iff_heq] at p
   let ⟨ eq1 , eq2 ⟩ := p
-  let eq2 := heq_subtype_to_eq_val eq2
+  let eq2 := by
+    refine heq_subtype_to_eq_val eq2 ?_
+    funext i
+    rw [eq1]
   rw [eq2] at eq1
   rw [<-eq1]
 
@@ -482,50 +471,12 @@ def heq_subtype_to_eq_
   }
 
 
-
-set_option pp.proofs true in
-def heq_subtype_to_eq
-  {A:Type}{n1 n2:A}
-  {p1 p2:A->Prop}{k1: p1 n1}{k2: p2 n2}
-  (eq: @HEq { i // p1 i } ⟨n1, k1⟩ { i // p2 i } ⟨n2, k2⟩)
-: n1 = n2 ∧ HEq (k1) (k2)
-:= by
-  apply And.intro
-  {
-    let t_eq := type_eq_of_heq eq
-    rw [<- (heq_heq t_eq)] at eq
-    simp only [heq_eq_eq] at eq
-    let eq2 := subtype_val_eq eq
-    rw [unstuck_rec] at eq2
-    rw [eq_mpr_eq_cast] at eq2
-    rw [id.eq_1 t_eq] at eq2
-    rw [reduce_cast_subtype_proj_1] at eq2
-    exact eq2
-  }
-  {
-    exact proof_irrel_heq k1 k2
-  }
-
--- theorem eq_rec_eq_ndrec {α : Type} {a b : α} (h : a = b) (c : α) :
---   Eq.rec (motive := fun x _ => α) c h = Eq.ndrec c h := by
---   -- Since the motive is constant (α), Eq.rec and Eq.ndrec are definitionally the same.
---   rfl
-
--- example {A:Type}{v1:A}{p1 p2:A->Prop}{k1: p1 v1}{k2: p2 v1}(eq:{ i // p1 i } = { i // p2 i })
--- : (@cast { i // p1 i } { i // p2 i } (eq) ⟨v1, k1⟩).val = (Subtype.mk v1 k2).val
--- := by
---   generalize eq1 : cast eq ⟨v1, k1⟩ = cv
---   let _ : (cast eq ⟨v1, k1⟩).val = (Subtype.mk v1 k2).val := by
---     apply congrArg
---     rw?
---     admit
---   done
-
 set_option pp.proofs true in
 def heq_subtype_to_eq_2
   {A:Type}{n1 n2:A}
   {p1 p2:A->Prop}{k1: p1 n1}{k2: p2 n2}
   (eq: @HEq { i // p1 i } ⟨n1, k1⟩ { i // p2 i } ⟨n2, k2⟩)
+  (eq2: p1=p2)
 : n1 = n2 ∧ HEq (k1) (k2)
 := by
   apply And.intro
@@ -536,17 +487,7 @@ def heq_subtype_to_eq_2
     rw [@cast_proj_1_eq_proj_cast] at eq
     simp at eq
     exact eq
-    -- rw [<- (heq_heq t_eq)] at eq
-    -- rw [rec_is_ndrec]
-    -- -- rw [heq_cast_iff_heq] at eq
-    -- simp only [heq_eq_eq] at eq
-    -- let eq2 := subtype_val_eq eq
-    -- rw [unstuck_rec] at eq2
-    -- rw [eq_mpr_eq_cast] at eq2
-
-    -- rw [id.eq_1 t_eq] at eq2
-    -- rw [reduce_cast_subtype_proj_1] at eq2
-    -- exact eq2
+    exact eq2
   }
   {
     exact proof_irrel_heq k1 k2
