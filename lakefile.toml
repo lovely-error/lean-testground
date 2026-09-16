@@ -1,0 +1,18 @@
+name = "lean-testground"
+version = "0.1.0"
+defaultTargets = ["lean-testground"]
+
+[[lean_lib]]
+name = "LeanTestground"
+
+[[lean_exe]]
+name = "lean-testground"
+root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+[[lean_exe]]
+name = "tinystories"
+root = "TinyStories"
