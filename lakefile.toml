@@ -1,13 +1,9 @@
 name = "lean-testground"
 version = "0.1.0"
-defaultTargets = ["lean-testground"]
+defaultTargets = ["LeanTestground", "tinystories"]
 
 [[lean_lib]]
 name = "LeanTestground"
-
-[[lean_exe]]
-name = "lean-testground"
-root = "Main"
 
 [[require]]
 name = "mathlib"

@@ -1,0 +1,15 @@
+/.lake
+# Corpus slice and derived token stream: re-fetchable, and large.
+/data
+# Trained weights and run logs.
+*.bin
+*.log
+# Exported forward-pass traces.
+trace.json
+loop.json
+*.gguf
+sweep/
+steer_results.txt
+# Source data for viz/story_generator_dataflow.html, which embeds it.
+stories_dataflow_dataset.json
+__pycache__/

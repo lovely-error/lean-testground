@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside a TinyStories Prompt</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: light-dark(#f4f3ef, #0e1013);
+    --surface: light-dark(#ffffff, #171a1f);
+    --surface-2: light-dark(#ecebe6, #20242b);
+    --ink: light-dark(#16191d, #f0f2f5);
+    --muted: light-dark(#5d626a, #a6acb7);
+    --line: light-dark(#d6d4cd, #343942);
+    --accent: light-dark(#1f6f5c, #6fd3b8);
+    --accent-soft: light-dark(#dff0e9, #18372f);
+    --positive: light-dark(#16816a, #6fd3b8);
+    --negative: light-dark(#ba4c63, #ef8194);
+    --attention: light-dark(#4f64c8, #91a2ff);
+    --attention-soft: light-dark(#e3e7ff, #252d53);
+    --warm: light-dark(#b06b25, #efb56f);
+    --mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+
+  button, select, input { font: inherit; }
+
+  button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .shell {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    padding: 42px 28px 28px;
+  }
+
+  .eyebrow {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    max-width: 760px;
+    margin: 10px 0 8px;
+    font-size: clamp(30px, 5vw, 56px);
+    font-weight: 500;
+    letter-spacing: -.04em;
+    line-height: 1.02;
+  }
+
+  .lede {
+    max-width: 760px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .prompt-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    margin: 26px 0 12px;
+  }
+
+  .prompt-label {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  .prompt-value {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(24px, 4vw, 38px);
+  }
+
+  .spec-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .journey {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0;
+    margin: 38px 0 22px;
+  }
+
+  .journey::before {
+    content: "";
+    position: absolute;
+    top: 18px;
+    left: 7%;
+    right: 7%;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .stage-button {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: 7px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0 4px;
+  }
+
+  .stage-number {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--page);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    transition: background .2s ease, color .2s ease, transform .2s ease;
+  }
+
+  .stage-label {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .stage-button[aria-current="step"] { color: var(--ink); }
+
+  .stage-button[aria-current="step"] .stage-number {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--page);
+    transform: translateY(-2px);
+  }
+
+  .stage-button.is-done .stage-number {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .stage-panel {
+    min-height: 560px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .stage-heading {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: start;
+    padding: 26px 30px 22px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .step-kicker {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  h2 {
+    margin: 5px 0 4px;
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 500;
+    letter-spacing: -.025em;
+  }
+
+  .stage-summary {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .shape {
+    align-self: center;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .stage-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    align-items: end;
+    min-height: 0;
+    padding: 0 30px;
+  }
+
+  .stage-controls:not(:empty) { padding-top: 18px; }
+
+  .control {
+    display: grid;
+    gap: 5px;
+  }
+
+  .control label {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  select {
+    min-width: 118px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--ink);
+    padding: 8px 30px 8px 10px;
+  }
+
+  .visual {
+    padding: 28px 30px 32px;
+  }
+
+  .tokens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .token {
+    min-width: 88px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--ink);
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  button.token { cursor: pointer; }
+
+  .token.is-active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .token.is-new {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--page);
+  }
+
+  .token-word { display: block; font-size: 16px; }
+
+  .token-id {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .token.is-new .token-id { color: inherit; opacity: .78; }
+
+  .down-arrow {
+    margin: 26px auto;
+    color: var(--accent);
+    font-size: 28px;
+    text-align: center;
+  }
+
+  .raw-prompt {
+    width: min(680px, 100%);
+    margin: 16px auto 0;
+    border-bottom: 1px solid var(--line);
+    padding: 20px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(25px, 4vw, 40px);
+    text-align: center;
+  }
+
+  .caption {
+    max-width: 720px;
+    margin: 22px auto 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.55;
+    text-align: center;
+  }
+
+  .vector-grid {
+    display: grid;
+    grid-template-columns: 110px repeat(8, minmax(42px, 1fr));
+    gap: 5px;
+    align-items: stretch;
+    max-width: 920px;
+    margin: 26px auto 0;
+  }
+
+  .vector-label, .dimension, .cell {
+    display: grid;
+    place-items: center;
+    min-height: 46px;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .vector-label {
+    justify-items: start;
+    color: var(--muted);
+    text-align: left;
+  }
+
+  .dimension {
+    min-height: 24px;
+    color: var(--muted);
+  }
+
+  .cell {
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+
+  .cell.pos {
+    border-color: color-mix(in srgb, var(--positive) 45%, var(--line));
+    background: color-mix(in srgb, var(--positive) calc(var(--strength) * 55%), var(--surface));
+  }
+
+  .cell.neg {
+    border-color: color-mix(in srgb, var(--negative) 45%, var(--line));
+    background: color-mix(in srgb, var(--negative) calc(var(--strength) * 55%), var(--surface));
+  }
+
+  .equation {
+    margin: 24px auto 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .attention-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
+    gap: 34px;
+    align-items: start;
+  }
+
+  .attention-bars {
+    display: grid;
+    gap: 10px;
+  }
+
+  .attention-row {
+    display: grid;
+    grid-template-columns: 78px 1fr 58px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .attention-word { text-align: right; }
+
+  .bar-track {
+    height: 20px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    width: var(--width);
+    background: var(--attention);
+    transition: width .25s ease;
+  }
+
+  .bar-value {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+  }
+
+  .query-note {
+    margin: 0 0 16px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .query-note strong { color: var(--ink); font-weight: 500; }
+
+  .heatmap {
+    display: grid;
+    grid-template-columns: 64px repeat(5, 1fr);
+    gap: 4px;
+  }
+
+  .heat-label, .heat-cell {
+    display: grid;
+    place-items: center;
+    min-height: 42px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  .heat-label { color: var(--muted); }
+
+  .heat-cell {
+    background: color-mix(in srgb, var(--attention) calc(var(--heat) * 85%), var(--surface-2));
+    color: var(--ink);
+  }
+
+  .heat-cell.masked {
+    background: var(--surface-2);
+    color: var(--muted);
+    opacity: .42;
+  }
+
+  .qkv {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+  }
+
+  .qkv h3 {
+    margin: 24px 0 0;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .residual-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    max-width: 980px;
+    margin: 8px auto 30px;
+  }
+
+  .residual-node {
+    min-height: 130px;
+    display: grid;
+    align-content: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface-2);
+    padding: 18px;
+  }
+
+  .residual-node strong { font-weight: 500; }
+
+  .residual-node code {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .norm {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 18px;
+  }
+
+  .plus {
+    color: var(--muted);
+    font-size: 24px;
+  }
+
+  .layer-stack {
+    display: grid;
+    gap: 18px;
+    max-width: 860px;
+    margin: 12px auto;
+  }
+
+  .layer-row {
+    display: grid;
+    grid-template-columns: 94px 1fr 72px;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .layer-name {
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .layer-track {
+    height: 28px;
+    border-radius: 7px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+
+  .layer-fill {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    width: var(--width);
+    background: var(--accent);
+    color: var(--page);
+    padding-left: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  .layer-norm {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+  }
+
+  .prediction-list {
+    display: grid;
+    gap: 12px;
+    max-width: 820px;
+    margin: 4px auto 0;
+  }
+
+  .prediction-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 70px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .prediction-word {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 19px;
+    text-align: right;
+  }
+
+  .prediction-row:first-child .prediction-word { color: var(--accent); }
+  .prediction-row:first-child .bar-fill { background: var(--accent); }
+
+  .generation {
+    display: grid;
+    gap: 26px;
+  }
+
+  .story-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    min-height: 68px;
+    align-content: center;
+  }
+
+  .story-word {
+    border-bottom: 2px solid transparent;
+    padding: 6px 3px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(20px, 3vw, 30px);
+  }
+
+  .story-word.prompt-word { color: var(--muted); }
+  .story-word.newest { border-color: var(--accent); color: var(--accent); }
+
+  .generation-control {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+  .transport {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .transport-group { display: flex; gap: 10px; }
+
+  .transport button {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    padding: 10px 15px;
+  }
+
+  .transport button.primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--page);
+  }
+
+  .transport button:disabled { cursor: default; opacity: .4; }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 760px) {
+    .shell { padding: 28px 14px 20px; }
+    .journey { grid-template-columns: repeat(7, 1fr); margin-top: 28px; }
+    .stage-label { display: none; }
+    .journey::before { left: 5%; right: 5%; }
+    .stage-panel { min-height: 0; border-radius: 14px; }
+    .stage-heading { grid-template-columns: 1fr; padding: 22px 18px 18px; }
+    .shape { justify-self: start; }
+    .stage-controls { padding-left: 18px; padding-right: 18px; }
+    .visual { padding: 24px 18px 26px; }
+    .token { min-width: 72px; }
+    .vector-grid {
+      grid-template-columns: 82px repeat(8, minmax(50px, 1fr));
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .attention-layout { grid-template-columns: 1fr; }
+    .residual-flow {
+      grid-template-columns: 1fr;
+    }
+    .plus { text-align: center; transform: rotate(90deg); }
+    .residual-node { min-height: 0; }
+    .prediction-row { grid-template-columns: 70px 1fr 58px; }
+    .transport { align-items: stretch; flex-direction: column; }
+    .transport-group { display: grid; grid-template-columns: 1fr 1fr; }
+    .transport button { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="shell" id="storyJourney">
+  <header>
+    <div class="eyebrow">A real forward pass · Lean 4</div>
+    <h1>What happens to “once upon a time”?</h1>
+    <p class="lede">Follow five words as they become vectors, exchange information through attention, pass through four transformer blocks, and turn into the next word of a story.</p>
+    <div class="prompt-line">
+      <span class="prompt-label">Prompt</span>
+      <span class="prompt-value">once upon a time</span>
+    </div>
+    <div class="spec-line">
+      <span>4 layers</span><span>128-wide residual stream</span><span>4 attention heads</span><span>2,048-word vocabulary</span>
+    </div>
+  </header>
+
+  <nav class="journey" id="journey" aria-label="Forward pass stages"></nav>
+
+  <section class="stage-panel" aria-live="polite">
+    <div class="stage-heading">
+      <div>
+        <div class="step-kicker" id="stepKicker"></div>
+        <h2 id="stageTitle"></h2>
+        <p class="stage-summary" id="stageSummary"></p>
+      </div>
+      <div class="shape" id="stageShape"></div>
+    </div>
+    <div class="stage-controls" id="stageControls"></div>
+    <div class="visual" id="stageVisual"></div>
+  </section>
+
+  <div class="transport">
+    <div class="transport-group">
+      <button type="button" id="prevButton">← Previous</button>
+      <button type="button" id="nextButton">Next →</button>
+    </div>
+    <button type="button" class="primary" id="playButton">Play the forward pass</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var DATA = {
+    tokens: ["<bos>", "once", "upon", "a", "time"],
+    ids: [1, 37, 41, 8, 33],
+    tokEmb: [
+      [-0.032,0.021,0.050,0.021,-0.002,0.001,-0.060,0.059],
+      [-0.040,0.023,0.038,-0.032,-0.010,0.023,-0.091,0.036],
+      [0.058,-0.005,0.019,-0.062,-0.022,0.063,-0.022,0.109],
+      [-0.031,0.040,0.051,0.089,-0.010,-0.019,-0.037,0.096],
+      [0.091,-0.056,-0.038,-0.018,-0.008,-0.014,-0.027,-0.002]
+    ],
+    posEmb: [
+      [-0.022,-0.037,0.030,-0.022,0.041,0.030,-0.024,-0.009],
+      [-0.032,-0.046,0.023,0.007,-0.021,0.020,-0.013,0.002],
+      [-0.040,-0.020,0.025,0.032,0.002,0.039,-0.048,-0.030],
+      [-0.050,-0.003,0.017,-0.008,0.021,0.023,0.014,-0.003],
+      [-0.005,-0.002,0.028,0.008,-0.017,-0.004,0.024,-0.004]
+    ],
+    x0: [
+      [-0.054,-0.016,0.081,-0.002,0.039,0.031,-0.084,0.050],
+      [-0.072,-0.022,0.061,-0.025,-0.031,0.043,-0.105,0.038],
+      [0.018,-0.025,0.045,-0.030,-0.021,0.102,-0.070,0.080],
+      [-0.081,0.038,0.068,0.081,0.011,0.004,-0.023,0.094],
+      [0.086,-0.059,-0.010,-0.010,-0.026,-0.018,-0.003,-0.006]
+    ],
+    xF: [
+      [-0.473,0.616,1.204,-1.085,-1.445,-0.386,0.182,-0.952],
+      [-2.675,-1.275,-0.414,-1.731,-3.331,1.353,1.863,1.111],
+      [-0.989,-2.720,1.081,-0.666,-1.847,-1.483,3.019,0.394],
+      [-0.787,-0.727,-0.262,1.134,1.009,-0.110,1.343,-0.415],
+      [-2.720,-0.834,-1.182,0.076,-0.966,1.637,2.538,-1.040]
+    ],
+    layers: [
+      {
+        q: [[-0.057,1.461,-0.310,1.427,0.663,0.647,-1.033,-0.255],[-0.148,1.125,0.058,0.301,1.029,0.134,-1.319,-0.382],[0.558,1.986,-1.106,1.006,0.579,-0.231,-0.395,-0.999],[0.294,1.628,0.119,-0.398,0.702,0.690,-0.327,0.667],[0.750,0.775,0.036,0.138,-0.084,-0.614,-0.415,-1.327]],
+        k: [[0.876,1.148,-0.928,1.395,-0.985,-0.039,1.282,-0.630],[0.766,1.303,-1.183,1.761,0.079,0.144,1.937,-1.326],[0.949,2.874,-0.466,1.942,0.551,0.893,1.742,-0.382],[0.289,0.830,-0.793,1.976,-0.716,0.301,2.474,-0.753],[0.609,1.857,-0.882,1.511,-0.792,1.078,0.994,-1.360]],
+        v: [[0.037,1.400,-0.764,-1.681,-1.236,0.878,-0.221,-1.339],[1.134,-0.016,2.018,0.803,0.082,0.211,-0.485,0.377],[0.445,1.754,0.903,1.092,2.561,0.000,0.110,-0.660],[-0.134,2.128,0.609,-0.457,1.116,1.622,0.074,0.406],[0.131,-1.286,-0.358,0.832,-1.499,-0.162,0.152,0.042]],
+        attn: [
+          [[1,0,0,0,0],[0.635,0.365,0,0,0],[0.093,0.159,0.747,0,0],[0.057,0.060,0.835,0.047,0],[0.178,0.066,0.136,0.146,0.474]],
+          [[1,0,0,0,0],[0.453,0.547,0,0,0],[0.250,0.479,0.272,0,0],[0.113,0.109,0.140,0.638,0],[0.059,0.109,0.164,0.568,0.100]],
+          [[1,0,0,0,0],[0.394,0.606,0,0,0],[0.109,0.244,0.647,0,0],[0.206,0.243,0.051,0.500,0],[0.087,0.070,0.248,0.203,0.393]],
+          [[1,0,0,0,0],[0.030,0.970,0,0,0],[0.023,0.042,0.935,0,0],[0.126,0.124,0.372,0.379,0],[0.121,0.122,0.253,0.134,0.371]]
+        ],
+        attnOut: [[-0.252,0.225,0.513,-0.059,-0.551,-0.055,0.944,0.599],[-0.071,-0.182,0.541,0.105,-0.968,-0.045,1.009,0.553],[-0.137,-0.765,0.659,-0.019,-0.743,-0.311,0.837,0.747],[0.049,-0.638,0.663,0.019,-0.443,-0.119,0.407,0.950],[-0.007,-0.475,0.505,0.023,-0.485,-0.077,0.658,0.660]],
+        xMid: [[-0.306,0.209,0.594,-0.060,-0.512,-0.024,0.860,0.649],[-0.144,-0.204,0.601,0.080,-0.999,-0.001,0.904,0.591],[-0.119,-0.790,0.703,-0.049,-0.764,-0.209,0.767,0.827],[-0.033,-0.600,0.731,0.100,-0.432,-0.115,0.384,1.044],[0.080,-0.533,0.494,0.013,-0.511,-0.095,0.655,0.654]],
+        mlpOut: [[-2.128,-0.152,1.538,0.029,-1.376,-0.215,-0.930,1.073],[-1.974,-0.965,0.526,-0.384,-2.455,1.297,-0.199,1.679],[-2.695,-1.901,2.258,0.713,-1.798,-1.092,1.198,1.280],[-1.142,-0.656,2.207,0.482,-1.201,0.059,0.332,0.634],[-2.431,-0.149,1.190,0.038,-1.178,0.491,1.437,0.599]],
+        xOut: [[-2.434,0.057,2.133,-0.031,-1.887,-0.239,-0.070,1.722],[-2.118,-1.170,1.128,-0.304,-3.455,1.296,0.705,2.270],[-2.814,-2.691,2.961,0.664,-2.561,-1.301,1.965,2.107],[-1.175,-1.257,2.938,0.582,-1.634,-0.055,0.716,1.678],[-2.352,-0.682,1.685,0.051,-1.689,0.396,2.092,1.254]],
+        norms: [1.241,10.356,27.440,31.732]
+      },
+      {
+        q: [[-1.406,-0.351,-1.164,3.153,-1.086,-0.088,-0.358,0.572],[-0.629,0.704,-0.589,2.525,-0.716,-0.573,-1.016,0.363],[-0.149,1.498,-1.426,3.208,-0.730,-0.156,-0.866,0.015],[-0.309,1.648,-1.056,2.675,-0.728,0.163,0.070,0.229],[-0.693,0.935,-0.621,2.602,-1.699,0.434,0.066,-0.364]],
+        k: [[1.760,0.378,0.531,0.303,-1.300,0.623,1.284,-2.242],[1.618,-0.008,1.225,0.159,-1.659,0.778,0.969,-1.666],[1.789,0.602,1.091,0.627,-0.835,1.913,1.060,-2.299],[2.035,1.814,0.681,0.520,-0.523,0.935,2.294,-2.082],[1.210,0.117,1.282,0.768,-1.924,1.278,1.952,-1.743]],
+        v: [[0.415,-0.822,-1.191,0.250,-0.496,0.001,1.441,-0.387],[0.089,-0.914,-1.579,1.378,-0.780,0.458,0.286,-0.166],[0.597,-0.395,-0.603,0.989,0.472,0.828,0.606,-0.487],[-0.825,-1.106,0.136,0.561,0.168,1.115,0.439,-0.750],[-0.828,-0.606,-0.788,0.538,-0.185,0.654,0.643,-0.856]],
+        attn: [
+          [[1,0,0,0,0],[0.504,0.496,0,0,0],[0.228,0.104,0.669,0,0],[0.194,0.100,0.352,0.354,0],[0.140,0.083,0.306,0.123,0.347]],
+          [[1,0,0,0,0],[0.709,0.291,0,0,0],[0.605,0.219,0.175,0,0],[0.362,0.087,0.190,0.361,0],[0.335,0.103,0.161,0.249,0.153]],
+          [[1,0,0,0,0],[0.798,0.202,0,0,0],[0.725,0.062,0.213,0,0],[0.750,0.036,0.076,0.138,0],[0.557,0.104,0.108,0.167,0.064]],
+          [[1,0,0,0,0],[0.269,0.731,0,0,0],[0.316,0.451,0.233,0,0],[0.316,0.385,0.140,0.159,0],[0.254,0.446,0.035,0.074,0.191]]
+        ],
+        attnOut: [[0.059,-0.350,-0.151,0.492,0.273,-1.100,0.680,-0.589],[-0.169,-0.251,0.201,0.510,0.632,-1.059,0.794,-0.676],[-0.184,-0.107,0.013,0.647,0.293,-0.769,0.649,-0.462],[-0.217,-0.147,0.036,0.640,0.385,-0.763,0.595,-0.495],[-0.151,-0.042,0.043,0.798,0.397,-0.790,0.610,-0.286]],
+        xMid: [[-2.374,-0.293,1.982,0.461,-1.614,-1.339,0.610,1.133],[-2.287,-1.421,1.329,0.206,-2.823,0.236,1.498,1.593],[-2.998,-2.797,2.975,1.311,-2.269,-2.071,2.614,1.645],[-1.392,-1.404,2.974,1.222,-1.249,-0.818,1.311,1.183],[-2.503,-0.725,1.728,0.848,-1.291,-0.394,2.702,0.967]],
+        mlpOut: [[-1.078,1.026,-0.085,0.151,-0.083,-0.366,0.784,-0.180],[-1.262,0.560,-0.578,0.020,-0.269,0.057,1.053,0.800],[-0.498,0.098,-0.150,-0.254,-0.259,-0.131,0.624,0.157],[-0.408,0.373,-0.570,0.855,1.052,-0.348,0.489,-0.288],[-0.914,0.522,-0.341,0.466,0.082,-0.179,0.576,-0.182]],
+        xOut: [[-3.452,0.733,1.897,0.612,-1.697,-1.705,1.394,0.953],[-3.549,-0.861,0.750,0.226,-3.092,0.294,2.551,2.393],[-3.496,-2.699,2.825,1.058,-2.528,-2.201,3.238,1.802],[-1.801,-1.031,2.404,2.077,-0.197,-1.166,1.801,0.895],[-3.417,-0.203,1.387,1.314,-1.210,-0.573,3.278,0.785]],
+        norms: [31.732,13.589,14.552,37.045]
+      },
+      {
+        q: [[0.596,2.511,-0.960,0.846,1.072,-1.174,-0.796,-0.559],[1.158,2.159,-1.142,0.233,1.065,-0.411,-1.055,-0.267],[1.115,0.598,-0.182,-0.851,0.476,-0.712,-0.967,0.295],[1.394,0.845,-1.333,-1.429,0.361,0.254,-1.351,0.624],[1.289,2.003,-0.678,0.314,0.754,-0.186,-0.886,0.071]],
+        k: [[-1.067,0.709,1.249,0.642,1.692,-0.923,-0.813,1.480],[-1.459,0.601,2.517,2.490,0.480,-1.701,-0.159,2.578],[-1.177,1.113,1.627,2.800,0.103,-1.014,-0.359,1.074],[-1.247,0.049,2.229,3.078,-0.472,-1.063,-0.255,1.134],[-1.170,0.473,3.018,2.952,-0.603,-1.443,-1.071,1.357]],
+        v: [[0.686,0.530,1.875,-0.692,1.290,0.610,-0.750,-1.116],[-0.012,-0.610,0.717,-1.298,0.578,-0.127,-1.435,-0.951],[0.412,-0.187,1.116,-0.121,-1.260,0.308,-1.177,-1.418],[0.209,-0.717,1.562,-0.137,0.153,0.627,-0.880,-1.078],[-0.641,-0.961,1.406,-1.230,0.266,0.582,-1.010,-1.833]],
+        attn: [
+          [[1,0,0,0,0],[0.921,0.079,0,0,0],[0.824,0.112,0.064,0,0],[0.953,0.023,0.018,0.006,0],[0.864,0.067,0.036,0.018,0.015]],
+          [[1,0,0,0,0],[0.191,0.809,0,0,0],[0.294,0.652,0.054,0,0],[0.192,0.401,0.079,0.328,0],[0.269,0.385,0.131,0.126,0.089]],
+          [[1,0,0,0,0],[0.470,0.530,0,0,0],[0.205,0.255,0.540,0,0],[0.078,0.179,0.404,0.339,0],[0.188,0.147,0.145,0.234,0.286]],
+          [[1,0,0,0,0],[0.671,0.329,0,0,0],[0.599,0.164,0.236,0,0],[0.437,0.088,0.352,0.123,0],[0.322,0.092,0.280,0.072,0.233]]
+        ],
+        attnOut: [[0.581,-1.198,-0.037,-0.546,-1.539,0.463,-0.505,-0.467],[0.768,-1.090,-0.357,-0.483,-1.252,0.358,0.082,-0.734],[0.422,-0.965,-0.496,-0.506,-1.271,0.320,0.003,-0.825],[0.419,-0.855,-0.574,-0.675,-1.121,0.438,0.071,-0.936],[0.481,-0.845,-0.557,-0.644,-1.096,0.431,0.052,-0.826]],
+        xMid: [[-2.871,-0.465,1.859,0.066,-3.236,-1.242,0.889,0.485],[-2.781,-1.951,0.393,-0.257,-4.344,0.652,2.633,1.660],[-3.074,-3.663,2.329,0.552,-3.799,-1.882,3.241,0.977],[-1.382,-1.886,1.831,1.402,-1.318,-0.727,1.872,-0.042],[-2.935,-1.048,0.830,0.670,-2.306,-0.142,3.331,-0.041]],
+        mlpOut: [[0.153,0.690,-1.243,-1.276,0.336,0.504,-0.150,-0.404],[-0.776,0.632,-0.867,-1.149,-0.084,0.558,-0.273,0.120],[0.230,-0.094,-1.479,-1.097,0.102,0.765,0.225,0.274],[0.059,0.099,-1.386,0.139,0.286,0.036,-0.144,0.295],[-0.499,0.063,-1.418,-0.397,0.391,1.067,0.179,-0.111]],
+        xOut: [[-2.718,0.225,0.616,-1.209,-2.899,-0.738,0.739,0.081],[-3.557,-1.320,-0.475,-1.406,-4.428,1.210,2.360,1.780],[-2.844,-3.757,0.850,-0.545,-3.697,-1.117,3.466,1.251],[-1.323,-1.786,0.445,1.540,-1.032,-0.691,1.728,0.254],[-3.434,-0.985,-0.588,0.273,-1.915,0.925,3.510,-0.152]],
+        norms: [37.045,16.000,12.830,37.248]
+      },
+      {
+        q: [[-0.608,0.089,0.842,-1.366,-0.071,0.930,-1.298,-0.480],[-0.036,0.022,0.207,0.105,0.335,1.056,-1.387,0.239],[-1.001,-0.077,-0.526,-0.042,0.637,0.263,-1.256,0.399],[-0.640,-0.293,-1.604,-0.546,0.102,-1.372,-1.060,-0.170],[-1.394,0.161,0.701,-1.071,-0.035,1.042,-2.133,0.239]],
+        k: [[1.297,-1.234,-0.778,-2.336,-0.652,0.017,0.715,-0.297],[0.806,-2.299,-1.241,-1.405,-0.447,0.359,2.016,0.262],[1.591,-1.138,-1.705,-1.344,0.508,-0.691,0.542,1.318],[-1.403,-2.435,-1.779,-1.799,-0.041,0.160,1.106,1.084],[-0.790,-2.060,-1.328,-2.171,0.069,1.454,1.943,0.820]],
+        v: [[-0.963,-0.271,1.026,1.217,0.609,1.214,1.099,-1.047],[-1.672,0.457,1.190,1.104,-0.433,2.472,0.656,0.027],[0.761,1.923,1.196,-0.071,0.870,1.739,-0.379,1.145],[-0.356,1.843,2.061,1.410,0.349,0.270,-0.929,-0.038],[-1.222,0.976,0.798,1.575,0.223,1.367,0.178,0.873]],
+        attn: [
+          [[1,0,0,0,0],[0.444,0.556,0,0,0],[0.217,0.372,0.411,0,0],[0.277,0.202,0.348,0.174,0],[0.213,0.075,0.105,0.308,0.300]],
+          [[1,0,0,0,0],[0.670,0.330,0,0,0],[0.281,0.294,0.425,0,0],[0.053,0.095,0.218,0.633,0],[0.115,0.116,0.156,0.261,0.352]],
+          [[1,0,0,0,0],[0.749,0.251,0,0,0],[0.367,0.048,0.584,0,0],[0.192,0.076,0.427,0.304,0],[0.159,0.080,0.345,0.314,0.101]],
+          [[1,0,0,0,0],[0.499,0.501,0,0,0],[0.034,0.045,0.920,0,0],[0.132,0.191,0.639,0.038,0],[0.149,0.124,0.321,0.061,0.345]]
+        ],
+        attnOut: [[0.820,-0.460,0.580,0.172,0.535,-0.110,-0.351,-0.563],[0.778,-0.464,0.378,-0.045,0.698,-0.250,-0.391,-0.545],[0.692,-0.145,0.503,-0.037,0.652,-0.125,-0.117,-0.579],[0.556,-0.081,0.464,-0.156,0.674,0.036,-0.294,-0.451],[0.735,0.041,0.394,-0.144,0.747,0.030,-0.386,-0.264]],
+        xMid: [[-1.897,-0.234,1.196,-1.038,-2.364,-0.848,0.387,-0.482],[-2.779,-1.784,-0.097,-1.451,-3.730,0.960,1.968,1.235],[-2.152,-3.902,1.353,-0.583,-3.045,-1.242,3.349,0.672],[-0.767,-1.867,0.909,1.384,-0.358,-0.655,1.434,-0.197],[-2.699,-0.944,-0.194,0.129,-1.167,0.955,3.124,-0.416]],
+        mlpOut: [[1.287,1.166,0.360,-0.407,0.292,0.320,-0.142,-0.783],[-0.001,0.233,-0.334,-0.403,-0.114,0.532,0.051,-0.047],[1.003,0.202,-0.096,-0.214,0.664,-0.585,0.308,-0.201],[-0.092,0.937,-1.196,-0.107,1.581,0.528,0.095,-0.269],[-0.189,-0.094,-1.062,-0.046,0.029,0.889,-0.314,-0.720]],
+        xOut: [[-0.610,0.931,1.556,-1.445,-2.073,-0.529,0.245,-1.265],[-2.779,-1.551,-0.431,-1.854,-3.843,1.492,2.019,1.188],[-1.149,-3.700,1.256,-0.797,-2.382,-1.827,3.657,0.471],[-0.859,-0.930,-0.287,1.277,1.224,-0.127,1.529,-0.466],[-2.888,-1.038,-1.256,0.083,-1.139,1.844,2.810,-1.136]],
+        norms: [37.248,9.837,14.236,39.952]
+      }
+    ],
+    preds: [
+      {word:",",prob:0.6865},{word:"there",prob:0.2909},{word:"in",prob:0.0062},
+      {word:"a",prob:0.0036},{word:".",prob:0.0021},{word:"upon",prob:0.0012}
+    ],
+    rollout: [
+      {token:",",prob:0.6866,candidates:[[",",0.6866],["there",0.2910],["in",0.0062],["a",0.0036],[".",0.0021],["upon",0.0012]]},
+      {token:"there",prob:0.9763,candidates:[["there",0.9763],["in",0.0062],["upon",0.0035],["a",0.0033],[",",0.0009],["two",0.0007]]},
+      {token:"was",prob:0.8753,candidates:[["was",0.8753],["lived",0.0528],["were",0.0313],["there",0.0166],[",",0.0058],[".",0.0027]]},
+      {token:"a",prob:0.9824,candidates:[["a",0.9824],["an",0.0138],["the",0.0004],["two",0.0004],["there",0.0003],["time",0.0003]]},
+      {token:"little",prob:0.4969,candidates:[["little",0.4969],["big",0.0570],["boy",0.0418],["girl",0.0345],["small",0.0260],["very",0.0182]]},
+      {token:"girl",prob:0.6965,candidates:[["girl",0.6965],["boy",0.1709],["bird",0.0095],["bunny",0.0092],["little",0.0091],["dog",0.0062]]},
+      {token:"named",prob:0.8083,candidates:[["named",0.8083],["who",0.0787],["called",0.0611],[".",0.0409],["and",0.0019],[",",0.0011]]},
+      {token:"lily",prob:0.5884,candidates:[["lily",0.5884],["lucy",0.0488],["sarah",0.0284],["jane",0.0214],["sue",0.0185],["amy",0.0143]]}
+    ]
+  };
+
+  var STAGES = [
+    {label:"Tokens",title:"Words become token IDs",summary:"The tokenizer lowercases and splits the prompt, prepends <bos>, and looks up one integer per word.",shape:"String → [5]"},
+    {label:"Embed",title:"Each ID becomes a 128-number state",summary:"A learned word vector and a learned position vector are added. The sum is the first residual stream.",shape:"[5] → [5 × 128]"},
+    {label:"Attend",title:"Every token reads its permitted past",summary:"Queries score earlier keys. A causal mask forbids looking right, and softmax turns the surviving scores into read weights.",shape:"4 × [5 × 5]"},
+    {label:"Residual",title:"Attention and the MLP write into the stream",summary:"Each block preserves the incoming state, adds attention context, then adds a nonlinear feed-forward update.",shape:"[5 × 128]"},
+    {label:"Layers",title:"The same five positions cross four blocks",summary:"The residual stream grows and reorganizes while the token positions stay fixed.",shape:"4 transformer blocks"},
+    {label:"Vocab",title:"The final position votes over 2,048 words",summary:"After final RMSNorm, the language-model head converts the state at “time” into one logit per vocabulary item.",shape:"[128] → [2,048]"},
+    {label:"Generate",title:"The chosen word goes back through the network",summary:"The model appends one word, updates its KV cache, and repeats the same next-token decision.",shape:"8 decoding steps"}
+  ];
+
+  var currentStage = 0;
+  var selectedToken = 4;
+  var attentionLayer = 0;
+  var attentionHead = 0;
+  var attentionQuery = 4;
+  var residualLayer = 0;
+  var residualToken = 4;
+  var generationStep = 1;
+  var playTimer = null;
+
+  var journey = document.getElementById("journey");
+  var visual = document.getElementById("stageVisual");
+  var controls = document.getElementById("stageControls");
+  var prevButton = document.getElementById("prevButton");
+  var nextButton = document.getElementById("nextButton");
+  var playButton = document.getElementById("playButton");
+
+  function esc(value) {
+    return String(value).replace(/[&<>"']/g, function (char) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char];
+    });
+  }
+
+  function pct(value, digits) {
+    return (value * 100).toFixed(digits == null ? 1 : digits) + "%";
+  }
+
+  function cell(value) {
+    var strength = Math.min(1, Math.abs(value) / 3);
+    return '<div class="cell ' + (value >= 0 ? "pos" : "neg") + '" style="--strength:' + strength.toFixed(3) + '">' + value.toFixed(3) + '</div>';
+  }
+
+  function vectorGrid(rows) {
+    var html = '<div class="vector-grid"><div></div>';
+    for (var d = 0; d < 8; d++) html += '<div class="dimension">d' + d + '</div>';
+    rows.forEach(function (row) {
+      html += '<div class="vector-label">' + esc(row.label) + '</div>';
+      row.values.forEach(function (value) { html += cell(value); });
+    });
+    return html + '</div>';
+  }
+
+  function tokenButtons(active) {
+    return '<div class="tokens">' + DATA.tokens.map(function (word, i) {
+      return '<button type="button" class="token ' + (i === active ? "is-active" : "") + '" data-token="' + i + '"><span class="token-word">' + esc(word) + '</span><span class="token-id">id ' + DATA.ids[i] + '</span></button>';
+    }).join("") + '</div>';
+  }
+
+  function selectControl(id, label, values, selected) {
+    var options = values.map(function (item) {
+      return '<option value="' + item.value + '"' + (String(item.value) === String(selected) ? " selected" : "") + '>' + esc(item.label) + '</option>';
+    }).join("");
+    return '<div class="control"><label for="' + id + '">' + esc(label) + '</label><select id="' + id + '">' + options + '</select></div>';
+  }
+
+  function predictionBars(items) {
+    var max = Math.max.apply(null, items.map(function (x) { return x.prob; }));
+    return '<div class="prediction-list">' + items.map(function (item) {
+      return '<div class="prediction-row"><div class="prediction-word">' + esc(item.word) + '</div><div class="bar-track"><div class="bar-fill" style="--width:' + (item.prob / max * 100).toFixed(2) + '%"></div></div><div class="bar-value">' + pct(item.prob) + '</div></div>';
+    }).join("") + '</div>';
+  }
+
+  function renderJourney() {
+    journey.innerHTML = STAGES.map(function (stage, i) {
+      return '<button type="button" class="stage-button ' + (i < currentStage ? "is-done" : "") + '" data-stage="' + i + '" aria-label="Step ' + (i + 1) + ': ' + esc(stage.label) + '"' + (i === currentStage ? ' aria-current="step"' : "") + '><span class="stage-number">' + (i + 1) + '</span><span class="stage-label">' + esc(stage.label) + '</span></button>';
+    }).join("");
+    journey.querySelectorAll("[data-stage]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        stopPlay();
+        currentStage = Number(button.getAttribute("data-stage"));
+        render();
+      });
+    });
+  }
+
+  function renderTokens() {
+    controls.innerHTML = "";
+    visual.innerHTML =
+      '<div class="raw-prompt">“once upon a time”</div>' +
+      '<div class="down-arrow" aria-hidden="true">↓</div>' +
+      '<div class="tokens">' + DATA.tokens.map(function (word, i) {
+        return '<div class="token"><span class="token-word">' + esc(word) + '</span><span class="token-id">id ' + DATA.ids[i] + '</span></div>';
+      }).join("") + '</div>' +
+      '<p class="caption">The network never receives the written words. From this point onward it sees the integer sequence <strong>[1, 37, 41, 8, 33]</strong>.</p>';
+  }
+
+  function renderEmbeddings() {
+    controls.innerHTML = "";
+    visual.innerHTML = tokenButtons(selectedToken) +
+      vectorGrid([
+        {label:"word vector",values:DATA.tokEmb[selectedToken]},
+        {label:"position " + selectedToken,values:DATA.posEmb[selectedToken]},
+        {label:"sum → x₀",values:DATA.x0[selectedToken]}
+      ]) +
+      '<div class="equation">tokenEmbedding[id] + positionEmbedding[position] = residualStream[position]</div>' +
+      '<p class="caption">Only the first 8 of 128 dimensions are shown. Color indicates sign and magnitude; the exact traced values remain printed in each cell.</p>';
+    visual.querySelectorAll("[data-token]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        selectedToken = Number(button.getAttribute("data-token"));
+        renderEmbeddings();
+      });
+    });
+  }
+
+  function renderAttention() {
+    controls.innerHTML =
+      selectControl("attentionLayer", "Layer", [0,1,2,3].map(function (x) { return {value:x,label:"Layer " + x}; }), attentionLayer) +
+      selectControl("attentionHead", "Head", [0,1,2,3].map(function (x) { return {value:x,label:"Head " + x}; }), attentionHead) +
+      selectControl("attentionQuery", "Query token", DATA.tokens.map(function (x,i) { return {value:i,label:x}; }), attentionQuery);
+
+    var layer = DATA.layers[attentionLayer];
+    var matrix = layer.attn[attentionHead];
+    var row = matrix[attentionQuery];
+    var bars = '<div><p class="query-note"><strong>' + esc(DATA.tokens[attentionQuery]) + '</strong> is reading from:</p><div class="attention-bars">' +
+      DATA.tokens.map(function (word, i) {
+        var value = row[i];
+        return '<div class="attention-row"><div class="attention-word">' + esc(word) + '</div><div class="bar-track"><div class="bar-fill" style="--width:' + (value * 100).toFixed(1) + '%"></div></div><div class="bar-value">' + pct(value) + '</div></div>';
+      }).join("") + '</div></div>';
+
+    var heat = '<div><p class="query-note">All query rows · future positions are masked</p><div class="heatmap"><div></div>' +
+      DATA.tokens.map(function (x) { return '<div class="heat-label">' + esc(x) + '</div>'; }).join("");
+    matrix.forEach(function (mrow, r) {
+      heat += '<div class="heat-label">' + esc(DATA.tokens[r]) + '</div>';
+      mrow.forEach(function (value, c) {
+        if (c > r) heat += '<div class="heat-cell masked">×</div>';
+        else heat += '<div class="heat-cell" style="--heat:' + value.toFixed(3) + '">' + value.toFixed(2) + '</div>';
+      });
+    });
+    heat += '</div></div>';
+
+    visual.innerHTML = '<div class="attention-layout">' + bars + heat +
+      '<div class="qkv"><h3>Projected vectors for query “' + esc(DATA.tokens[attentionQuery]) + '” · first 8 dimensions</h3>' +
+      vectorGrid([
+        {label:"query",values:layer.q[attentionQuery]},
+        {label:"key",values:layer.k[attentionQuery]},
+        {label:"value",values:layer.v[attentionQuery]}
+      ]) + '</div></div>';
+
+    document.getElementById("attentionLayer").addEventListener("change", function (e) { attentionLayer = Number(e.target.value); renderAttention(); });
+    document.getElementById("attentionHead").addEventListener("change", function (e) { attentionHead = Number(e.target.value); renderAttention(); });
+    document.getElementById("attentionQuery").addEventListener("change", function (e) { attentionQuery = Number(e.target.value); renderAttention(); });
+  }
+
+  function renderResidual() {
+    controls.innerHTML =
+      selectControl("residualLayer", "Layer", [0,1,2,3].map(function (x) { return {value:x,label:"Layer " + x}; }), residualLayer) +
+      selectControl("residualToken", "Token", DATA.tokens.map(function (x,i) { return {value:i,label:x}; }), residualToken);
+
+    var layer = DATA.layers[residualLayer];
+    var xIn = residualLayer === 0 ? DATA.x0[residualToken] : DATA.layers[residualLayer - 1].xOut[residualToken];
+    visual.innerHTML =
+      '<div class="residual-flow">' +
+        '<div class="residual-node"><strong>Incoming stream</strong><code>x</code><span class="norm">‖x‖ ' + layer.norms[0].toFixed(3) + '</span></div>' +
+        '<div class="plus">+</div>' +
+        '<div class="residual-node"><strong>Attention writes context</strong><code>attention(x) · Wₒ</code><span class="norm">‖Δ‖ ' + layer.norms[1].toFixed(3) + '</span></div>' +
+        '<div class="plus">+</div>' +
+        '<div class="residual-node"><strong>MLP writes features</strong><code>GELU(xW₁+b₁)W₂+b₂</code><span class="norm">‖Δ‖ ' + layer.norms[2].toFixed(3) + '</span></div>' +
+        '<div class="plus">=</div>' +
+        '<div class="residual-node"><strong>Block output</strong><code>x′</code><span class="norm">‖x′‖ ' + layer.norms[3].toFixed(3) + '</span></div>' +
+      '</div>' +
+      vectorGrid([
+        {label:"x in",values:xIn},
+        {label:"+ attention",values:layer.attnOut[residualToken]},
+        {label:"+ MLP",values:layer.mlpOut[residualToken]},
+        {label:"x out",values:layer.xOut[residualToken]}
+      ]) +
+      '<p class="caption">The displayed norms cover all five tokens and all 128 dimensions; the cells show the selected token’s first eight dimensions.</p>';
+
+    document.getElementById("residualLayer").addEventListener("change", function (e) { residualLayer = Number(e.target.value); renderResidual(); });
+    document.getElementById("residualToken").addEventListener("change", function (e) { residualToken = Number(e.target.value); renderResidual(); });
+  }
+
+  function renderLayers() {
+    controls.innerHTML = "";
+    var entries = [
+      {name:"Embedding",norm:1.241,note:"word + position"},
+      {name:"Layer 0",norm:31.732,note:"attention + MLP"},
+      {name:"Layer 1",norm:37.045,note:"attention + MLP"},
+      {name:"Layer 2",norm:37.248,note:"attention + MLP"},
+      {name:"Layer 3",norm:39.952,note:"attention + MLP"}
+    ];
+    var max = 39.952;
+    visual.innerHTML = '<div class="layer-stack">' + entries.map(function (entry) {
+      return '<div class="layer-row"><div class="layer-name">' + entry.name + '</div><div class="layer-track"><div class="layer-fill" style="--width:' + Math.max(4, entry.norm / max * 100).toFixed(1) + '%">' + entry.note + '</div></div><div class="layer-norm">‖x‖ ' + entry.norm.toFixed(3) + '</div></div>';
+    }).join("") + '</div>' +
+    '<p class="caption">These are whole-stream L2 norms, not quality scores. Residual connections accumulate updates, so growth is expected; final RMSNorm rescales each token before prediction.</p>';
+  }
+
+  function renderVocabulary() {
+    controls.innerHTML = "";
+    visual.innerHTML = predictionBars(DATA.preds) +
+      '<p class="caption">The probabilities shown are the real softmax output at the final prompt position. The comma wins this decoding step; the generated sequence then becomes “once upon a time,”.</p>' +
+      vectorGrid([{label:"final state",values:DATA.xF[4]}]);
+  }
+
+  function renderGeneration() {
+    controls.innerHTML = "";
+    var chosen = DATA.rollout.slice(0, generationStep);
+    var step = DATA.rollout[generationStep - 1];
+    var storyWords = DATA.tokens.slice(1).map(function (x) { return {word:x,prompt:true}; })
+      .concat(chosen.map(function (x) { return {word:x.token,prompt:false}; }));
+    var candidates = step.candidates.map(function (x) { return {word:x[0],prob:x[1]}; });
+    visual.innerHTML =
+      '<div class="generation">' +
+        '<div class="story-line">' + storyWords.map(function (x, i) {
+          var newest = i === storyWords.length - 1 ? " newest" : "";
+          return '<span class="story-word ' + (x.prompt ? "prompt-word" : "") + newest + '">' + esc(x.word) + '</span>';
+        }).join("") + '</div>' +
+        '<div class="generation-control"><span class="shape">step 1</span><input id="generationRange" type="range" min="1" max="8" value="' + generationStep + '" aria-label="Generation step"><span class="shape">step 8</span></div>' +
+        predictionBars(candidates) +
+      '</div>' +
+      '<p class="caption">At step ' + generationStep + ', <strong>' + esc(step.token) + '</strong> is chosen with ' + pct(step.prob) + ' probability. Each new token is embedded at the next position and run through the same four blocks using cached keys and values.</p>';
+    document.getElementById("generationRange").addEventListener("input", function (e) {
+      generationStep = Number(e.target.value);
+      renderGeneration();
+    });
+  }
+
+  function render() {
+    var stage = STAGES[currentStage];
+    document.getElementById("stepKicker").textContent = "Step " + (currentStage + 1) + " of " + STAGES.length;
+    document.getElementById("stageTitle").textContent = stage.title;
+    document.getElementById("stageSummary").textContent = stage.summary;
+    document.getElementById("stageShape").textContent = stage.shape;
+    renderJourney();
+    [renderTokens, renderEmbeddings, renderAttention, renderResidual, renderLayers, renderVocabulary, renderGeneration][currentStage]();
+    prevButton.disabled = currentStage === 0;
+    nextButton.disabled = currentStage === STAGES.length - 1;
+    nextButton.textContent = currentStage === STAGES.length - 1 ? "Next →" : "Next: " + STAGES[currentStage + 1].label + " →";
+  }
+
+  function stopPlay() {
+    if (playTimer != null) {
+      clearInterval(playTimer);
+      playTimer = null;
+    }
+    playButton.textContent = "Play the forward pass";
+  }
+
+  prevButton.addEventListener("click", function () {
+    stopPlay();
+    currentStage = Math.max(0, currentStage - 1);
+    render();
+  });
+
+  nextButton.addEventListener("click", function () {
+    stopPlay();
+    currentStage = Math.min(STAGES.length - 1, currentStage + 1);
+    render();
+  });
+
+  playButton.addEventListener("click", function () {
+    if (playTimer != null) {
+      stopPlay();
+      return;
+    }
+    if (currentStage === STAGES.length - 1) currentStage = 0;
+    render();
+    playButton.textContent = "Pause";
+    playTimer = setInterval(function () {
+      if (currentStage >= STAGES.length - 1) {
+        stopPlay();
+      } else {
+        currentStage += 1;
+        render();
+        if (playTimer != null) playButton.textContent = "Pause";
+      }
+    }, 1800);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "ArrowLeft" && currentStage > 0) {
+      stopPlay();
+      currentStage -= 1;
+      render();
+    } else if (event.key === "ArrowRight" && currentStage < STAGES.length - 1) {
+      stopPlay();
+      currentStage += 1;
+      render();
+    }
+  });
+
+  render();
+}());
+</script>
+</body>
+</html>
